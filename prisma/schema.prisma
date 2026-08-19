@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  attendee
+  organizer
+  admin
+}
+
+enum EventStatus {
+  draft
+  published
+  cancelled
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         UserRole
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  events        Event[]        @relation("OrganizedEvents")
+  bookings      Booking[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Event {
+  id          Int         @id @default(autoincrement())
+  organizerId Int         @map("organizer_id")
+  title       String
+  description String?
+  venue       String
+  startsAt    DateTime    @map("starts_at") @db.Timestamptz(6)
+  capacity    Int
+  seatsTaken  Int         @default(0) @map("seats_taken")
+  priceCents  Int         @map("price_cents")
+  status      EventStatus @default(published)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organizer User      @relation("OrganizedEvents", fields: [organizerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  bookings  Booking[]
+
+  @@index([organizerId], map: "idx_events_organizer")
+  @@index([startsAt], map: "idx_events_starts_at")
+  @@map("events")
+}
+
+model Booking {
+  id         Int           @id @default(autoincrement())
+  eventId    Int           @map("event_id")
+  userId     Int           @map("user_id")
+  seats      Int
+  totalCents Int           @map("total_cents")
+  status     BookingStatus @default(confirmed)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([eventId], map: "idx_bookings_event")
+  @@index([userId], map: "idx_bookings_user")
+  @@map("bookings")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "idx_refresh_tokens_user")
+  @@map("refresh_tokens")
+}
+
+model SchemaMigration {
+  name      String   @id
+  appliedAt DateTime @default(now()) @map("applied_at") @db.Timestamptz(6)
+
+  @@map("schema_migrations")
+}

@@ -10,7 +10,6 @@ import {
   createEventSchema,
   updateEventSchema,
   eventIdParamSchema,
-  listEventsQuerySchema,
 } from "./events.schema.js";
 import * as eventsService from "./events.service.js";
 
@@ -123,87 +122,6 @@ eventRoutes.get(
 
 /**
  * @openapi
- * /api/v1/events:
- *   get:
- *     summary: List public events with pagination and filters
- *     tags: [Events]
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *       - in: query
- *         name: venue
- *         schema:
- *           type: string
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [draft, published, cancelled]
- *       - in: query
- *         name: organizerId
- *         schema:
- *           type: integer
- *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *           enum: [startsAt, createdAt, priceCents, capacity, title]
- *           default: startsAt
- *       - in: query
- *         name: sortOrder
- *         schema:
- *           type: string
- *           enum: [asc, desc]
- *           default: asc
- *     responses:
- *       200:
- *         description: Paginated list of events
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Event'
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     page: { type: integer }
- *                     limit: { type: integer }
- *                     total: { type: integer }
- *                     totalPages: { type: integer }
- */
-eventRoutes.get(
-  "/",
-  optionalAuth,
-  validate(listEventsQuerySchema, "query"),
-  catchAsync(async (req, res) => {
-    const result = await eventsService.listEvents(
-      req.query as unknown as eventsService.FormattedEvent extends unknown
-        ? any
-        : never,
-      req.user,
-    );
-    res.json(result);
-  }),
-);
-
-/**
- * @openapi
  * /api/v1/events/{id}:
  *   get:
  *     summary: Get an event by ID
@@ -298,8 +216,7 @@ eventRoutes.patch(
   catchAsync(async (req, res) => {
     const event = await eventsService.updateEvent(
       Number(req.params.id),
-      req.user!.userId,
-      req.user!.role,
+      req.user!,
       req.body,
     );
     res.json({ event });
@@ -339,11 +256,7 @@ eventRoutes.delete(
   requireRole("organizer", "admin"),
   validate(eventIdParamSchema, "params"),
   catchAsync(async (req, res) => {
-    await eventsService.deleteEvent(
-      Number(req.params.id),
-      req.user!.userId,
-      req.user!.role,
-    );
+    await eventsService.deleteEvent(Number(req.params.id), req.user!);
     res.status(204).send();
   }),
 );
