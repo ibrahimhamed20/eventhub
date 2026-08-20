@@ -2,6 +2,7 @@ import { Router } from "express";
 import { validate } from "../../middleware/validate.js";
 import { catchAsync } from "../../middleware/core.js";
 import { requireAuth } from "../../middleware/auth.js";
+import { bookingLimiter } from "../../middleware/rateLimit.js";
 import {
   createBookingSchema,
   bookingIdParamSchema,
@@ -52,10 +53,13 @@ export const bookingRoutes = Router();
  *         description: Event not found
  *       409:
  *         description: Conflict (event not published, event already started, or sold out)
+ *       429:
+ *         description: Rate limit exceeded (too many booking requests)
  */
 bookingRoutes.post(
   "/",
   requireAuth,
+  bookingLimiter,
   validate(createBookingSchema, "body"),
   catchAsync(async (req, res) => {
     const booking = await bookingsService.createBooking(
@@ -65,6 +69,7 @@ bookingRoutes.post(
     res.status(201).json({ booking });
   }),
 );
+
 
 /**
  * @openapi
