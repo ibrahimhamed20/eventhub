@@ -16,6 +16,7 @@ import { swaggerSpec } from "./docs/swagger.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { eventRoutes } from "./modules/events/events.routes.js";
 import { bookingRoutes } from "./modules/bookings/bookings.routes.js";
+import { userRoutes } from "./modules/users/users.routes.js";
 import { typeDefs } from "./modules/analytics/analytics.schema.graphql.js";
 import { resolvers } from "./modules/analytics/analytics.resolvers.js";
 import { createLoaders } from "./modules/analytics/analytics.loaders.js";
@@ -62,6 +63,7 @@ export async function createApp(): Promise<express.Express> {
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/events", eventRoutes);
   app.use("/api/v1/bookings", bookingRoutes);
+  app.use("/api/v1/users", userRoutes);
 
   // --- Must stay last, in this order ---
   app.use(notFoundHandler);

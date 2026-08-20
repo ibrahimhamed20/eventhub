@@ -77,6 +77,22 @@ export const routes: Routes = [
       ).then((m) => m.EventAttendeesComponent),
   },
   {
+    path: 'admin',
+    canActivate: [roleGuard(['admin'])],
+    loadComponent: () =>
+      import('./features/admin/dashboard/admin-dashboard.component').then(
+        (m) => m.AdminDashboardComponent
+      ),
+  },
+  {
+    path: 'admin/users',
+    canActivate: [roleGuard(['admin'])],
+    loadComponent: () =>
+      import('./features/admin/users/admin-users.component').then(
+        (m) => m.AdminUsersComponent
+      ),
+  },
+  {
     path: '**',
     redirectTo: 'events',
   },

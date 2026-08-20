@@ -54,7 +54,25 @@ import { AuthApiService } from '../../../core/http/auth-api.service';
                   [routerLinkActiveOptions]="{ exact: true }"
                   class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
                 >
-                  Dashboard
+                  Organizer Hub
+                </a>
+              }
+
+              @if (authStore.isAdmin()) {
+                <a
+                  routerLink="/admin"
+                  routerLinkActive="bg-purple-950 text-purple-200 border border-purple-800"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  class="px-3.5 py-2 rounded-lg text-sm font-medium text-purple-300 hover:text-white hover:bg-purple-950/60 transition-colors"
+                >
+                  Admin Hub
+                </a>
+                <a
+                  routerLink="/admin/users"
+                  routerLinkActive="bg-purple-950 text-purple-200 border border-purple-800"
+                  class="px-3.5 py-2 rounded-lg text-sm font-medium text-purple-300 hover:text-white hover:bg-purple-950/60 transition-colors"
+                >
+                  Users
                 </a>
               }
             </nav>
@@ -167,6 +185,23 @@ import { AuthApiService } from '../../../core/http/auth-api.service';
               class="block px-3 py-2 rounded-md text-base font-medium text-indigo-400 hover:bg-indigo-950/40"
             >
               + Create New Event
+            </a>
+          }
+
+          @if (authStore.isAdmin()) {
+            <a
+              routerLink="/admin"
+              (click)="mobileMenuOpen.set(false)"
+              class="block px-3 py-2 rounded-md text-base font-medium text-purple-300 hover:text-white hover:bg-purple-950/40"
+            >
+              Admin Command Center
+            </a>
+            <a
+              routerLink="/admin/users"
+              (click)="mobileMenuOpen.set(false)"
+              class="block px-3 py-2 rounded-md text-base font-medium text-purple-300 hover:text-white hover:bg-purple-950/40"
+            >
+              Manage Users
             </a>
           }
 
