@@ -36,20 +36,31 @@ export function errorHandler(
   err: Error,
   _req: Request,
   res: Response,
-  _next: NextFunction
+  next: NextFunction,
 ): void {
+  // Headers already flushed (e.g. mid-stream) — we cannot change the
+  // status code or send a JSON body. Let Express destroy the socket.
+  if (res.headersSent) {
+    return next(err);
+  }
+
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
-      error: { message: err.message, code: err.code, ...(err.details ? { details: err.details } : {}) },
+      error: {
+        message: err.message,
+        code: err.code,
+        ...(err.details ? { details: err.details } : {}),
+      },
     });
     return;
   }
 
-  console.error('Unhandled error:', err);
+  console.error("Unhandled error:", err);
   res.status(500).json({
     error: {
-      message: isProduction ? 'internal server error' : err.message,
-      code: 'INTERNAL',
+      message: isProduction ? "internal server error" : err.message,
+      code: "INTERNAL",
     },
   });
 }
+

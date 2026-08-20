@@ -1,4 +1,6 @@
+import { pipeline } from "node:stream/promises";
 import { Router } from "express";
+
 import { validate } from "../../middleware/validate.js";
 import { catchAsync } from "../../middleware/core.js";
 import {
@@ -129,7 +131,6 @@ eventRoutes.get(
     res.json(result);
   }),
 );
-
 
 /**
  * @openapi
@@ -272,6 +273,60 @@ eventRoutes.get(
       req.user,
     );
     res.json({ event });
+  }),
+);
+
+/**
+ * @openapi
+ * /api/v1/events/{id}/attendees.csv:
+ *   get:
+ *     summary: Export confirmed event attendees as CSV
+ *     description: Streams confirmed attendee bookings for an event as CSV with formula injection protection. Only the event creator or an admin can export attendees.
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: CSV stream of confirmed attendees
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               example: "bookingId,attendeeName,attendeeEmail,seats,totalCents,bookedAt\n1,\"John Doe\",\"john@example.com\",2,5000,\"2026-11-20T18:00:00.000Z\"\n"
+ *       400:
+ *         description: Invalid event ID
+ *       401:
+ *         description: Unauthenticated
+ *       403:
+ *         description: Forbidden (not the event owner or admin)
+ *       404:
+ *         description: Event not found
+ */
+eventRoutes.get(
+  "/:id/attendees.csv",
+  requireAuth,
+  requireRole("organizer", "admin"),
+  validate(eventIdParamSchema, "params"),
+  catchAsync(async (req, res) => {
+    const eventId = Number(req.params.id);
+    const stream = await eventsService.getEventAttendeesCsvStream(
+      eventId,
+      req.user!,
+    );
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="event-${eventId}-attendees.csv"`,
+    );
+
+    await pipeline(stream, res);
   }),
 );
 

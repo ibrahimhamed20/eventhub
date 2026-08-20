@@ -1,4 +1,6 @@
+import { Readable } from "node:stream";
 import { prisma } from "../../db/prisma.js";
+
 import {
   NotFoundError,
   ForbiddenError,
@@ -175,3 +177,79 @@ export async function listEvents(query: ListEventsQuery, actor?: JwtPayload) {
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 }
+
+/**
+ * Escapes a value safely for CSV export.
+ * Neutralizes spreadsheet formula injection (=, +, -, @, \t, \r) by prepending a single quote,
+ * and wraps all values in standard double quotes escaping internal quotes.
+ */
+function csvEscape(value: unknown): string {
+  const str = String(value ?? "");
+  const safe = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Streams confirmed attendees for an event as CSV rows using cursor-based pagination.
+ * Only the event organizer or an admin can access this stream.
+ */
+export async function getEventAttendeesCsvStream(
+  eventId: number,
+  actor: JwtPayload,
+): Promise<Readable> {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) {
+    throw new NotFoundError("event");
+  }
+
+  assertCanManage(event, actor, "export attendees for");
+
+  async function* generateCsvRows() {
+    yield "bookingId,attendeeName,attendeeEmail,seats,totalCents,bookedAt\n";
+
+    let cursor: number | undefined;
+    const BATCH_SIZE = 500;
+
+    while (true) {
+      const batch = await prisma.booking.findMany({
+        where: { eventId, status: "confirmed" },
+        include: {
+          user: {
+            select: {
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { id: "asc" },
+        take: BATCH_SIZE,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      });
+
+      if (batch.length === 0) {
+        break;
+      }
+
+      for (const b of batch) {
+        const row = [
+          csvEscape(b.id),
+          csvEscape(b.user.fullName),
+          csvEscape(b.user.email),
+          csvEscape(b.seats),
+          csvEscape(b.totalCents),
+          csvEscape(b.createdAt.toISOString()),
+        ].join(",") + "\n";
+
+        yield row;
+      }
+
+      cursor = batch[batch.length - 1]!.id;
+      if (batch.length < BATCH_SIZE) {
+        break;
+      }
+    }
+  }
+
+  return Readable.from(generateCsvRows());
+}
+
