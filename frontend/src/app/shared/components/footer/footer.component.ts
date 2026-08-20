@@ -1,8 +1,10 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-footer',
   standalone: true,
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer class="mt-auto border-t border-slate-900 bg-slate-950/80 py-8 text-center text-xs text-slate-500">
@@ -13,9 +15,19 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
           <span class="text-slate-600">&bull;</span>
           <span>Enterprise Event Discovery & Reservation</span>
         </div>
-        <p class="text-slate-500">
-          Built with Angular & SignalStore &bull; Strict Typed Contracts &bull; Resilient Refresh Flow
-        </p>
+        <div class="flex items-center gap-4 text-slate-400">
+          <a routerLink="/docs" class="hover:text-indigo-400 transition-colors">
+            User Guide & Docs
+          </a>
+          <span class="text-slate-700">&bull;</span>
+          <a routerLink="/events" class="hover:text-indigo-400 transition-colors">
+            Public Events
+          </a>
+          <span class="text-slate-700">&bull;</span>
+          <a href="http://localhost:3000/docs" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 transition-colors">
+            Swagger API
+          </a>
+        </div>
       </div>
     </footer>
   `,

@@ -37,6 +37,14 @@ import { AuthApiService } from '../../../core/http/auth-api.service';
                 Discover
               </a>
 
+              <a
+                routerLink="/docs"
+                routerLinkActive="bg-slate-800 text-white"
+                class="px-3.5 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
+              >
+                Docs
+              </a>
+
               @if (authStore.isAuthenticated()) {
                 <a
                   routerLink="/bookings"
@@ -159,6 +167,14 @@ import { AuthApiService } from '../../../core/http/auth-api.service';
             class="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800"
           >
             Discover Events
+          </a>
+
+          <a
+            routerLink="/docs"
+            (click)="mobileMenuOpen.set(false)"
+            class="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800"
+          >
+            User Guide & Docs
           </a>
 
           @if (authStore.isAuthenticated()) {

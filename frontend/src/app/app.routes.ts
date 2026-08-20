@@ -23,6 +23,11 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'docs',
+    loadComponent: () =>
+      import('./features/docs/docs.component').then((m) => m.DocsComponent),
+  },
+  {
     path: 'login',
     loadComponent: () =>
       import('./features/auth/login/login.component').then(
