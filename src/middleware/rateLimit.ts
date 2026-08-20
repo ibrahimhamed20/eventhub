@@ -1,4 +1,4 @@
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 
 /**
  * Production Note:
@@ -26,7 +26,8 @@ export const loginAccountLimiter = rateLimit({
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => `${req.ip}:${req.body?.email ?? "unknown"}`,
+  keyGenerator: (req) =>
+    `${ipKeyGenerator(req.ip!)}:${req.body?.email ?? "unknown"}`,
   message: {
     error: {
       message:

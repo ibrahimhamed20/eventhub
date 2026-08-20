@@ -2,19 +2,25 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
+import { ApolloServer } from "@apollo/server";
+import { expressMiddleware } from "@as-integrations/express5";
 
 import {
   requestLogger,
   notFoundHandler,
   errorHandler,
 } from "./middleware/core.js";
+import { requireAuth } from "./middleware/auth.js";
 import { swaggerSpec } from "./docs/swagger.js";
 
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { eventRoutes } from "./modules/events/events.routes.js";
 import { bookingRoutes } from "./modules/bookings/bookings.routes.js";
+import { typeDefs } from "./modules/analytics/analytics.schema.graphql.js";
+import { resolvers } from "./modules/analytics/analytics.resolvers.js";
+import { createLoaders } from "./modules/analytics/analytics.loaders.js";
 
-export function createApp(): express.Express {
+export async function createApp(): Promise<express.Express> {
   const app = express();
 
   // --- Security & parsing (order matters) ---
@@ -35,6 +41,22 @@ export function createApp(): express.Express {
   app.get("/openapi.json", (_req, res) => {
     res.json(swaggerSpec);
   });
+
+  // --- GraphQL Analytics (Apollo Server 5 with DataLoader) ---
+  const apollo = new ApolloServer({ typeDefs, resolvers });
+  await apollo.start();
+
+  app.use(
+    "/graphql",
+    requireAuth,
+    expressMiddleware(apollo, {
+      context: async ({ req }) => ({
+        actor: req.user!,
+        loaders: createLoaders(),
+      }),
+    }),
+  );
+
 
   // --- Feature routes get mounted here as you build them ---
   app.use("/api/v1/auth", authRoutes);
