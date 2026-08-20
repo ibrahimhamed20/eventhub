@@ -12,8 +12,9 @@ const adapter = new PrismaPg(pool);
 
 export const prisma = new PrismaClient({
   adapter,
-  log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+  log: [{ emit: "event", level: "query" }, "warn", "error"],
 });
+
 
 export async function disconnectPrisma(): Promise<void> {
   await prisma.$disconnect();

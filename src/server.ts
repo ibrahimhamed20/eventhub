@@ -17,8 +17,9 @@ async function start(): Promise<void> {
   await pool.query("SELECT 1");
   console.log("✅ Database connection verified");
 
-  const app = createApp();
+  const app = await createApp();
   const server = app.listen(config.port, () => {
+
     console.log(`🚀 EventHub running on http://localhost:${config.port}`);
     console.log(`📚 API docs at         http://localhost:${config.port}/docs`);
   });
