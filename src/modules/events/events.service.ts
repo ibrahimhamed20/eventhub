@@ -6,8 +6,12 @@ import {
   ValidationError,
 } from "../../shared/errors.js";
 import type { JwtPayload } from "../auth/auth.service.js";
-import type { CreateEventInput, UpdateEventInput } from "./events.schema.js";
-import type { Event } from "../../generated/prisma/client.js";
+import type {
+  CreateEventInput,
+  UpdateEventInput,
+  ListEventsQuery,
+} from "./events.schema.js";
+import type { Event, Prisma } from "../../generated/prisma/client.js";
 
 function withSeatsAvailable(event: Event) {
   return {
@@ -109,4 +113,65 @@ export async function getOrganizerEvents(organizerId: number) {
     orderBy: { startsAt: "asc" },
   });
   return events.map(withSeatsAvailable);
+}
+
+export async function listEvents(query: ListEventsQuery, actor?: JwtPayload) {
+  const conditions: Prisma.EventWhereInput[] = [];
+
+  // --- visibility ---
+  if (actor?.role === "admin") {
+    if (query.status) conditions.push({ status: query.status });
+  } else if (actor?.role === "organizer") {
+    conditions.push({
+      OR: [
+        { status: "published" },
+        { status: "draft", organizerId: actor.userId },
+      ],
+    });
+  } else {
+    conditions.push({ status: "published" });
+  }
+
+  // --- filters ---
+  if (query.venue)
+    conditions.push({ venue: { contains: query.venue, mode: "insensitive" } });
+  if (query.organizerId) conditions.push({ organizerId: query.organizerId });
+
+  if (query.startsAfter || query.startsBefore) {
+    conditions.push({
+      startsAt: {
+        ...(query.startsAfter ? { gte: query.startsAfter } : {}),
+        ...(query.startsBefore ? { lte: query.startsBefore } : {}),
+      },
+    });
+  }
+
+  // --- search: its own OR group, safely ANDed with the rest ---
+  if (query.search) {
+    conditions.push({
+      OR: [
+        { title: { contains: query.search, mode: "insensitive" } },
+        { description: { contains: query.search, mode: "insensitive" } },
+        { venue: { contains: query.search, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  const where: Prisma.EventWhereInput = { AND: conditions };
+
+  const { page, limit, sortBy, sortOrder } = query;
+  const [total, events] = await Promise.all([
+    prisma.event.count({ where }),
+    prisma.event.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+  ]);
+
+  return {
+    data: events.map(withSeatsAvailable),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 }

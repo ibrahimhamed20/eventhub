@@ -8,8 +8,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "migrate": "tsx src/db/migrate.ts up",
-    "migrate:down": "tsx src/db/migrate.ts down",
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:reset": "prisma migrate reset",
     "seed": "tsx src/db/seed.ts"
   },
   "keywords": [],

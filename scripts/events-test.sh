@@ -31,9 +31,9 @@ run_test() {
   local body
 
   if [ -n "$data" ]; then
-    response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X "$method" "$url" $headers -d "$data")
+    response=$(eval curl -s -w "'\nHTTP_STATUS:%{http_code}'" -X "$method" "'$url'" $headers -d "'$data'")
   else
-    response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X "$method" "$url" $headers)
+    response=$(eval curl -s -w "'\nHTTP_STATUS:%{http_code}'" -X "$method" "'$url'" $headers)
   fi
 
   status_code=$(echo "$response" | grep "HTTP_STATUS:" | cut -d':' -f2)

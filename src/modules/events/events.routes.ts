@@ -10,10 +10,126 @@ import {
   createEventSchema,
   updateEventSchema,
   eventIdParamSchema,
+  listEventsQuerySchema,
+  type ListEventsQuery,
 } from "./events.schema.js";
 import * as eventsService from "./events.service.js";
 
 export const eventRoutes = Router();
+
+/**
+ * @openapi
+ * /api/v1/events:
+ *   get:
+ *     summary: List and discover events
+ *     description: Public endpoint with optional authentication. General visitors only see published events. Admins can see all events or filter by status.
+ *     tags: [Events]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of items per page (maximum 100)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Full-text search matching title, description, or venue (case-insensitive)
+ *       - in: query
+ *         name: venue
+ *         schema:
+ *           type: string
+ *         description: Filter events by venue name (case-insensitive substring)
+ *       - in: query
+ *         name: organizerId
+ *         schema:
+ *           type: integer
+ *         description: Filter events by organizer ID
+ *       - in: query
+ *         name: startsAfter
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter events starting at or after this date
+ *       - in: query
+ *         name: startsBefore
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter events starting at or before this date
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published, cancelled]
+ *         description: Filter by status (Admins only for draft or all statuses)
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [startsAt, createdAt, priceCents, capacity, title]
+ *           default: startsAt
+ *         description: Sort field
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Paginated list of events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Event'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *                     total:
+ *                       type: integer
+ *                       example: 50
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 5
+ *       400:
+ *         description: Validation error
+ */
+eventRoutes.get(
+  "/",
+  optionalAuth,
+  validate(listEventsQuerySchema, "query"),
+  catchAsync(async (req, res) => {
+    const result = await eventsService.listEvents(
+      req.query as unknown as ListEventsQuery,
+      req.user,
+    );
+    res.json(result);
+  }),
+);
+
 
 /**
  * @openapi
