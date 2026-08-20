@@ -2,7 +2,10 @@ import { Router } from "express";
 import { validate } from "../../middleware/validate.js";
 import { catchAsync } from "../../middleware/core.js";
 import { requireAuth } from "../../middleware/auth.js";
-import { createBookingSchema } from "./bookings.schema.js";
+import {
+  createBookingSchema,
+  bookingIdParamSchema,
+} from "./bookings.schema.js";
 import * as bookingsService from "./bookings.service.js";
 
 export const bookingRoutes = Router();
@@ -99,3 +102,105 @@ bookingRoutes.get(
     res.json({ bookings });
   }),
 );
+
+/**
+ * @openapi
+ * /api/v1/bookings/{id}:
+ *   get:
+ *     summary: Get booking details by ID
+ *     description: Authenticated booking owner or admin can retrieve booking details.
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Booking details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 booking:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/Booking'
+ *                     - type: object
+ *                       properties:
+ *                         event:
+ *                           $ref: '#/components/schemas/Event'
+ *       400:
+ *         description: Invalid booking ID
+ *       401:
+ *         description: Unauthenticated
+ *       403:
+ *         description: Forbidden (not your booking)
+ *       404:
+ *         description: Booking not found
+ */
+bookingRoutes.get(
+  "/:id",
+  requireAuth,
+  validate(bookingIdParamSchema, "params"),
+  catchAsync(async (req, res) => {
+    const booking = await bookingsService.getBookingById(
+      Number(req.params.id),
+      req.user!,
+    );
+    res.json({ booking });
+  }),
+);
+
+/**
+ * @openapi
+ * /api/v1/bookings/{id}/cancel:
+ *   patch:
+ *     summary: Cancel a booking
+ *     description: Authenticated booking owner or admin can cancel a confirmed booking. Frees up reserved seats atomically using pessimistic locking.
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Booking cancelled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 booking:
+ *                   $ref: '#/components/schemas/Booking'
+ *       400:
+ *         description: Invalid booking ID
+ *       401:
+ *         description: Unauthenticated
+ *       403:
+ *         description: Forbidden (not your booking)
+ *       404:
+ *         description: Booking not found
+ *       409:
+ *         description: Conflict (already cancelled or event already started)
+ */
+bookingRoutes.patch(
+  "/:id/cancel",
+  requireAuth,
+  validate(bookingIdParamSchema, "params"),
+  catchAsync(async (req, res) => {
+    const booking = await bookingsService.cancelBooking(
+      Number(req.params.id),
+      req.user!,
+    );
+    res.json({ booking });
+  }),
+);
+
