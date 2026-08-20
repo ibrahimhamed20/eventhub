@@ -1,13 +1,14 @@
-import { Router } from 'express';
-import { validate } from '../../middleware/validate.js';
-import { catchAsync } from '../../middleware/core.js';
-import { requireAuth } from '../../middleware/auth.js';
+import { Router } from "express";
+import { validate } from "../../middleware/validate.js";
+import { catchAsync } from "../../middleware/core.js";
+import { requireAuth } from "../../middleware/auth.js";
 import {
-  registerSchema,
-  loginSchema,
-  refreshSchema,
-} from './auth.schema.js';
-import * as authService from './auth.service.js';
+  loginIpLimiter,
+  loginAccountLimiter,
+  registerLimiter,
+} from "../../middleware/rateLimit.js";
+import { registerSchema, loginSchema, refreshSchema } from "./auth.schema.js";
+import * as authService from "./auth.service.js";
 
 export const authRoutes = Router();
 
@@ -55,14 +56,17 @@ export const authRoutes = Router();
  *         description: Validation error
  *       409:
  *         description: Email already in use
+ *       429:
+ *         description: Rate limit exceeded (too many registrations)
  */
 authRoutes.post(
-  '/register',
+  "/register",
+  registerLimiter,
   validate(registerSchema),
   catchAsync(async (req, res) => {
     const result = await authService.register(req.body);
     res.status(201).json(result);
-  })
+  }),
 );
 
 /**
@@ -102,14 +106,18 @@ authRoutes.post(
  *         description: Validation error
  *       401:
  *         description: Invalid email or password
+ *       429:
+ *         description: Rate limit exceeded (too many failed attempts)
  */
 authRoutes.post(
-  '/login',
+  "/login",
+  loginIpLimiter,
+  loginAccountLimiter,
   validate(loginSchema),
   catchAsync(async (req, res) => {
     const result = await authService.login(req.body);
     res.status(200).json(result);
-  })
+  }),
 );
 
 /**
@@ -146,12 +154,12 @@ authRoutes.post(
  *         description: Invalid or expired refresh token
  */
 authRoutes.post(
-  '/refresh',
+  "/refresh",
   validate(refreshSchema),
   catchAsync(async (req, res) => {
     const result = await authService.refreshTokens(req.body.refreshToken);
     res.status(200).json(result);
-  })
+  }),
 );
 
 /**
@@ -174,12 +182,12 @@ authRoutes.post(
  *         description: Logged out successfully
  */
 authRoutes.post(
-  '/logout',
+  "/logout",
   catchAsync(async (req, res) => {
     const refreshToken = req.body?.refreshToken;
     await authService.logout(refreshToken);
-    res.status(200).json({ message: 'logged out successfully' });
-  })
+    res.status(200).json({ message: "logged out successfully" });
+  }),
 );
 
 /**
@@ -206,12 +214,12 @@ authRoutes.post(
  *         description: User not found
  */
 authRoutes.get(
-  '/me',
+  "/me",
   requireAuth,
   catchAsync(async (req, res) => {
     const user = await authService.getUserProfile(req.user!.userId);
     res.status(200).json({ user });
-  })
+  }),
 );
 
 export default authRoutes;

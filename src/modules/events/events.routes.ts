@@ -9,6 +9,10 @@ import {
   optionalAuth,
 } from "../../middleware/auth.js";
 import {
+  eventsListLimiter,
+  csvExportLimiter,
+} from "../../middleware/rateLimit.js";
+import {
   createEventSchema,
   updateEventSchema,
   eventIdParamSchema,
@@ -18,6 +22,7 @@ import {
 import * as eventsService from "./events.service.js";
 
 export const eventRoutes = Router();
+
 
 /**
  * @openapi
@@ -118,9 +123,12 @@ export const eventRoutes = Router();
  *                       example: 5
  *       400:
  *         description: Validation error
+ *       429:
+ *         description: Rate limit exceeded (too many requests)
  */
 eventRoutes.get(
   "/",
+  eventsListLimiter,
   optionalAuth,
   validate(listEventsQuerySchema, "query"),
   catchAsync(async (req, res) => {
@@ -131,6 +139,7 @@ eventRoutes.get(
     res.json(result);
   }),
 );
+
 
 /**
  * @openapi
@@ -307,11 +316,14 @@ eventRoutes.get(
  *         description: Forbidden (not the event owner or admin)
  *       404:
  *         description: Event not found
+ *       429:
+ *         description: Rate limit exceeded (too many export requests)
  */
 eventRoutes.get(
   "/:id/attendees.csv",
   requireAuth,
   requireRole("organizer", "admin"),
+  csvExportLimiter,
   validate(eventIdParamSchema, "params"),
   catchAsync(async (req, res) => {
     const eventId = Number(req.params.id);
@@ -329,6 +341,7 @@ eventRoutes.get(
     await pipeline(stream, res);
   }),
 );
+
 
 /**
  * @openapi
