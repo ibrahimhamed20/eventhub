@@ -12,7 +12,9 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:reset": "prisma migrate reset",
     "seed": "tsx src/db/seed.ts",
-    "verify:dod": "tsx scripts/verify-all-dod.ts"
+    "verify:dod": "tsx scripts/verify-all-dod.ts",
+    "lab:rt-01": "tsx labs/rt-01-websocket-echo/server.ts",
+    "lab:rt-01:test": "tsx labs/rt-01-websocket-echo/test-client.ts"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +36,7 @@
     "pg": "^8.23.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
+    "ws": "^8.22.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -45,6 +48,7 @@
     "@types/pg": "^8.23.1",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "@types/ws": "^8.18.2",
     "axios": "^1.20.0",
     "prisma": "^7.9.1",
     "tsx": "^4.23.12",
